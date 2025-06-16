@@ -1,0 +1,32 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f7f8fc;
+    margin: 0;
+    padding: 0;
+}
+nav a {
+    text-decoration: none;
+    padding: 10px;
+    font-weight: bold;
+}
+form {
+    margin: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    max-width: 400px;
+}
+input, select, button {
+    margin: 8px 0;
+    padding: 8px;
+    width: 100%;
+}
+table {
+    width: 90%;
+    margin: 20px;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px;
+    text-align: left;
+}
