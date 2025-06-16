@@ -1,13 +1,13 @@
 <?php
 $host = 'localhost';
-$dbname = 'campussync';
+$db = 'campussync';
 $user = 'root';
-$pass = '';
+$pass = ''; // replace in production with env()
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass);
+    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+    die("DB Connection failed: " . $e->getMessage());
 }
 ?>
