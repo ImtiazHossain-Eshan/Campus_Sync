@@ -1,16 +1,23 @@
--- Create database and switch to it
+-- Updated Database Schema for CampusSync
+
 CREATE DATABASE IF NOT EXISTS campussync;
 USE campussync;
 
--- 1. Users table
+-- 1. Users table with extended profile fields
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
     email VARCHAR(100) UNIQUE,
     password VARCHAR(255),
     phone VARCHAR(20),
-    social VARCHAR(100)
+    social VARCHAR(100),
+    semester VARCHAR(20),
+    university VARCHAR(100) DEFAULT 'BRAC University',
+    gender ENUM('Male', 'Female'),
+    department VARCHAR(100),
+    profile_pic VARCHAR(255)
 );
+
 
 -- 2. Course sections table (cache for scraped data)
 CREATE TABLE IF NOT EXISTS course_sections (
@@ -24,8 +31,10 @@ CREATE TABLE IF NOT EXISTS course_sections (
     last_updated DATETIME NULL
 );
 
+ALTER TABLE course_sections
+ADD COLUMN raw_time VARCHAR(255) NULL AFTER end_time;
+
 -- 3. Routines table
--- Note: routines references users; course details are stored here but not via foreign key to course_sections
 CREATE TABLE IF NOT EXISTS routines (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
@@ -68,9 +77,3 @@ CREATE TABLE IF NOT EXISTS group_members (
     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
--- (Optional) If you had earlier attempted ALTER TABLE course_sections before it existed, that is now moot since we created it above with needed columns.
--- If you need to add additional columns in future, ensure the table exists first:
--- ALTER TABLE course_sections ADD COLUMN example_column VARCHAR(50);
-
--- End of script
