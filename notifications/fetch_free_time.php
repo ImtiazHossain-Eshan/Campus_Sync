@@ -2,7 +2,7 @@
 // Ensure no whitespace/BOM before this tag
 
 // === Error reporting / logging settings ===
-// During development, log errors but do NOT display them in responses
+// Do NOT display errors in HTTP response; log them instead.
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
@@ -12,7 +12,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-require '../auth/auth_check.php'; // Must not emit output
+require '../auth/auth_check.php'; // Ensure this does NOT emit output or start session again
 require '../config/db.php';
 
 // Clean any buffered output
@@ -23,7 +23,7 @@ if (ob_get_length()) {
 header('Content-Type: application/json; charset=utf-8');
 
 try {
-    // Read raw body
+    // Read raw POST body
     $raw = file_get_contents('php://input');
     if ($raw === false) {
         throw new Exception('Failed to read request body.');
@@ -41,6 +41,7 @@ try {
         exit;
     }
 
+    // Get current user
     $current_user_id = $_SESSION['user_id'] ?? null;
     if (!$current_user_id) {
         http_response_code(401);
@@ -54,10 +55,10 @@ try {
     });
     $friend_ids = array_map('intval', $friend_ids);
 
-    // Build list of user IDs: include current user
+    // Build user_ids list including current user
     $user_ids = array_unique(array_merge([$current_user_id], $friend_ids));
 
-    // Validate friend IDs are actual accepted friends
+    // Validate friend IDs: ensure each is an accepted friend
     if (!empty($friend_ids)) {
         $placeholders = implode(',', array_fill(0, count($friend_ids), '?'));
         $sql = "
@@ -88,7 +89,6 @@ try {
         foreach ($friend_ids as $fid) {
             $params[] = $fid;
         }
-
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $valid = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
@@ -101,32 +101,28 @@ try {
         }
     }
 
-    // Define campus window
+    // Campus window bounds
     $day_start = '08:00:00';
     $day_end   = '19:00:00';
 
     // Helper: merge overlapping/contiguous busy intervals
-    // Input: array of ['start_time'=>'HH:MM:SS', 'end_time'=>'HH:MM:SS']
-    // Output: merged array sorted by start_time, no overlaps: each next.start > prev.end
     function merge_busy_intervals(array $intervals): array {
         if (empty($intervals)) {
             return [];
         }
-        // Sort by start_time
         usort($intervals, function($a, $b){
             return strcmp($a['start_time'], $b['start_time']);
         });
         $merged = [];
         $current = $intervals[0];
         foreach (array_slice($intervals, 1) as $iv) {
-            // If overlapping or contiguous (iv.start <= current.end), merge
+            // If overlapping or contiguous: next.start_time <= current.end_time
             if ($iv['start_time'] <= $current['end_time']) {
                 // Extend end_time if needed
                 if ($iv['end_time'] > $current['end_time']) {
                     $current['end_time'] = $iv['end_time'];
                 }
             } else {
-                // No overlap: push current, move to next
                 $merged[] = $current;
                 $current = $iv;
             }
@@ -136,8 +132,6 @@ try {
     }
 
     // Helper: compute free intervals between window [day_start, day_end] given merged busy intervals
-    // Input: merged busy array sorted, non-overlapping
-    // Output: array of ['start'=>..., 'end'=>...] free intervals; may include before first busy and after last busy
     function compute_free_from_busy(array $busy_merged, string $day_start, string $day_end): array {
         $free = [];
         $cursor = $day_start;
@@ -147,7 +141,6 @@ try {
             if ($s > $cursor) {
                 $free[] = ['start' => $cursor, 'end' => $s];
             }
-            // Move cursor forward
             if ($e > $cursor) {
                 $cursor = $e;
             }
@@ -169,13 +162,13 @@ try {
     $stmt->execute($user_ids);
     $daysFetched = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
 
-    if (!$daysFetched) {
+    if (empty($daysFetched)) {
         // No routines at all
         echo json_encode(['free_slots' => new stdClass()]);
         exit;
     }
 
-    // Sort days if they are names "Monday", etc.
+    // Sort days if they are full names ("Monday", etc.)
     $dayOrderMap = [
         'Saturday' => 0,
         'Sunday'   => 1,
@@ -204,34 +197,32 @@ try {
             $stmt->execute([$uid, $day]);
             $busy = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (empty($busy)) {
-                // If any user has no classes this day => skip this day entirely
+                // If any user has no classes this day => skip this day
                 $per_user_busy_merged = null;
                 break;
             }
-            // Merge busy intervals
             $merged = merge_busy_intervals($busy);
             $per_user_busy_merged[$uid] = $merged;
             // Earliest class start_time for this user
             $earliest_starts[] = $merged[0]['start_time'];
         }
         if ($per_user_busy_merged === null) {
-            // Skip day: at least one user has no classes
+            // Skip because at least one user has no classes that day
             continue;
         }
-        // Determine effective arrival time: max of earliest class starts among users
+        // Effective arrival time: max of earliest class starts
         $effective_arrival = $earliest_starts[0];
         foreach ($earliest_starts as $st) {
             if (strcmp($st, $effective_arrival) > 0) {
                 $effective_arrival = $st;
             }
         }
-        // Now compute each user's free intervals (full window) then trim by arrival
+
+        // Compute each user’s free intervals then trim by arrival
         $per_user_free_trimmed = [];
         foreach ($user_ids as $uid) {
             $busy_merged = $per_user_busy_merged[$uid];
-            // Compute free between [day_start, day_end]
             $free_full = compute_free_from_busy($busy_merged, $day_start, $day_end);
-            // Trim by arrival: keep only parts at/after effective_arrival
             $trimmed = [];
             foreach ($free_full as $fiv) {
                 $fs = $fiv['start'];
@@ -240,15 +231,15 @@ try {
                 if (strcmp($fe, $effective_arrival) <= 0) {
                     continue;
                 }
-                // If start < arrival < end, adjust start to arrival
+                // If starts < arrival < end, adjust start to arrival
                 $new_start = (strcmp($fs, $effective_arrival) < 0) ? $effective_arrival : $fs;
-                // Keep if new_start < end
                 if (strcmp($new_start, $fe) < 0) {
                     $trimmed[] = ['start' => $new_start, 'end' => $fe];
                 }
             }
             $per_user_free_trimmed[$uid] = $trimmed;
         }
+
         // Intersect trimmed free intervals across users
         $common = null;
         foreach ($user_ids as $uid) {
@@ -259,7 +250,6 @@ try {
                 $new_common = [];
                 foreach ($common as $cf) {
                     foreach ($user_free as $uf) {
-                        // intersection
                         $start = (strcmp($cf['start'], $uf['start']) > 0) ? $cf['start'] : $uf['start'];
                         $end   = (strcmp($cf['end'],   $uf['end'])   < 0) ? $cf['end']   : $uf['end'];
                         if (strcmp($start, $end) < 0) {
@@ -274,19 +264,33 @@ try {
             }
         }
         if (!empty($common)) {
-            // Optionally, you could merge adjacent free intervals in $common if they touch or are contiguous.
-            // But with our logic, they should already be disjoint. If needed, implement merge here.
             $free_slots[$day] = $common;
         }
-        // If $common empty, day yields no free slots; we could include day with empty array or skip it.
-        // We skip days with no free slots so front-end shows only days with some free time.
+        // If empty, skip including this day
+        // Example threshold: 30 minutes
+$thresholdMinutes = 30;
+$filtered = [];
+foreach ($common as $iv) {
+    list($h1,$m1,$s1) = explode(':', $iv['start']);
+    list($h2,$m2,$s2) = explode(':', $iv['end']);
+    $startSec = $h1*3600 + $m1*60 + $s1;
+    $endSec   = $h2*3600 + $m2*60 + $s2;
+    $diffMin = ($endSec - $startSec) / 60;
+    if ($diffMin >= $thresholdMinutes) {
+        $filtered[] = $iv;
+    }
+}
+if (!empty($filtered)) {
+    $free_slots[$day] = $filtered;
+}
+// If $filtered is empty, skip the day entirely.
+
     }
 
     echo json_encode(['free_slots' => $free_slots]);
     exit;
 
 } catch (Exception $e) {
-    // Log internally
     error_log("fetch_free_time exception: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Server error. Please try again later.']);
