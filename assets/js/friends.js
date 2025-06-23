@@ -60,26 +60,27 @@ async function loadFriends() {
   friendList.innerHTML = '';
   pendingList.innerHTML = '';
 
-  // Accepted Friends
+  // Accepted Friends - FIXED CARD LAYOUT
   data.accepted.forEach(friend => {
     const profilePic = friend.profile_pic ? `../${friend.profile_pic}` : '../assets/img/default-profile.png';
 
     const card = document.createElement('div');
     card.className = `
-      bg-white p-6 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6
-      hover:shadow-lg transition-shadow duration-300 max-w-xl mx-auto
+      bg-white p-4 rounded-xl border shadow-sm
+      hover:shadow-md transition-shadow duration-300
+      flex flex-col h-full
     `;
 
     card.innerHTML = `
-      <div class="flex items-center gap-6 flex-1 min-w-0">
-        <img src="${profilePic}" class="w-20 h-20 rounded-full object-cover border-4 border-blue-500 flex-shrink-0" alt="Friend">
+      <div class="flex items-center gap-4 mb-4">
+        <img src="${profilePic}" class="w-16 h-16 rounded-full object-cover border-2 border-blue-500 flex-shrink-0" alt="Friend">
         <div class="min-w-0">
-          <p class="font-semibold text-lg text-gray-900 truncate">${friend.name}</p>
-          <p class="text-sm text-gray-500 truncate" title="${friend.email ?? 'No email'}">${friend.email ?? '<span class="italic text-gray-400">No email</span>'}</p>
+          <p class="font-semibold text-gray-800 truncate">${friend.name}</p>
+          <p class="text-sm text-gray-500 truncate">${friend.email ?? '<span class="italic text-gray-400">No email</span>'}</p>
         </div>
       </div>
       <button onclick="confirmRemove(${friend.id}, '${friend.name}')" 
-        class="self-start sm:self-auto bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-5 py-2 rounded-full text-base font-semibold transition whitespace-nowrap">
+        class="mt-auto bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-4 py-1.5 rounded-full text-sm font-medium transition">
         Remove
       </button>
     `;

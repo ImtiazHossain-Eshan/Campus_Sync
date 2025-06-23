@@ -1,9 +1,7 @@
--- Updated Database Schema for CampusSync
-
 CREATE DATABASE IF NOT EXISTS campussync;
 USE campussync;
 
--- 1. Users table with extended profile fields
+-- 1. Users table
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
@@ -18,7 +16,6 @@ CREATE TABLE IF NOT EXISTS users (
     profile_pic VARCHAR(255)
 );
 
-
 -- 2. Course sections table (cache for scraped data)
 CREATE TABLE IF NOT EXISTS course_sections (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -28,11 +25,9 @@ CREATE TABLE IF NOT EXISTS course_sections (
     room VARCHAR(20),
     start_time TIME,
     end_time TIME,
+    raw_time VARCHAR(255),
     last_updated DATETIME NULL
 );
-
-ALTER TABLE course_sections
-ADD COLUMN raw_time VARCHAR(255) NULL AFTER end_time;
 
 -- 3. Routines table
 CREATE TABLE IF NOT EXISTS routines (
@@ -56,11 +51,10 @@ CREATE TABLE IF NOT EXISTS notifications (
     receiver_id INT,
     message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME DEFAULT NULL,
     FOREIGN KEY (sender_id) REFERENCES users(id),
     FOREIGN KEY (receiver_id) REFERENCES users(id)
 );
-
-ALTER TABLE notifications ADD COLUMN read_at DATETIME DEFAULT NULL;
 
 -- 5. Groups and group_members
 CREATE TABLE IF NOT EXISTS groups (
@@ -80,13 +74,17 @@ CREATE TABLE IF NOT EXISTS group_members (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 6. Friends table with anti-duplicate logic
 CREATE TABLE IF NOT EXISTS friends (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     friend_id INT NOT NULL,
     status ENUM('pending', 'accepted', 'declined') DEFAULT 'pending',
     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    friendship_key VARCHAR(255) GENERATED ALWAYS AS (
+        IF(user_id < friend_id, CONCAT(user_id, '_', friend_id), CONCAT(friend_id, '_', user_id))
+    ) STORED,
+    UNIQUE KEY unique_friendship_pair (friendship_key),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_friendship (user_id, friend_id)
+    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
 );
