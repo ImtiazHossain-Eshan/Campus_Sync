@@ -70,10 +70,8 @@ $friends = $stmt->fetchAll();
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // Clear previous results/messages
         resultsSection.innerHTML = '';
 
-        // Collect selected friend IDs
         const formData = new FormData(form);
         const friendIds = formData.getAll('friend_ids[]')
           .map(id => parseInt(id))
@@ -104,35 +102,32 @@ $friends = $stmt->fetchAll();
             },
             body: JSON.stringify({ friend_ids: friendIds })
           });
-          console.log('fetch_free_time response status:', res.status);
+          console.log('fetch_free_time status:', res.status);
           const text = await res.text();
           let data;
           try {
             data = text ? JSON.parse(text) : {};
           } catch (parseErr) {
-            console.error('Failed to parse JSON from fetch_free_time:', parseErr, 'Raw response:', text);
-            throw new Error('Invalid JSON response from server.');
+            console.error('Invalid JSON:', parseErr, 'Response text:', text);
+            throw new Error('Invalid response from server.');
           }
 
           if (!res.ok) {
-            const errMsg = data && data.error ? data.error : `Server returned status ${res.status}`;
-            console.error('Error from fetch_free_time endpoint:', errMsg);
+            const msg = data && data.error ? data.error : `Server returned ${res.status}`;
             resultsSection.innerHTML = `
               <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded mb-4">
-                <p class="text-red-700">Error: ${errMsg}</p>
+                <p class="text-red-700">Error: ${msg}</p>
               </div>`;
             return;
           }
-
           if (data.error) {
-            console.error('Error field in JSON:', data.error);
+            console.error('Error field:', data.error);
             resultsSection.innerHTML = `
               <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded mb-4">
                 <p class="text-red-700">Error: ${data.error}</p>
               </div>`;
             return;
           }
-
           renderResults(data.free_slots || {});
         } catch (err) {
           console.error('Fetch exception:', err);
@@ -145,10 +140,8 @@ $friends = $stmt->fetchAll();
         }
       });
 
-      // Helper: format "HH:MM:SS" → "HH:MM"
-      // formatTime :
+      // Convert "HH:MM:SS" to 12-hour "h:mm AM/PM"
       function formatTime12(ts) {
-        // ts: "HH:MM:SS"
         if (!ts) return '';
         const [hourStr, minStr] = ts.split(':');
         let hour = parseInt(hourStr, 10);
@@ -159,31 +152,29 @@ $friends = $stmt->fetchAll();
         return `${hour}:${minute} ${suffix}`;
       }
 
-
       function renderResults(freeSlots) {
-        // freeSlots: { "Monday": [ {start:"08:00:00",end:"09:30:00"}, ... ], ... }
+        // freeSlots: { "Tuesday": [ {start:"13:50:00",end:"19:00:00"}, ... ], ... }
         const days = Object.keys(freeSlots);
         if (days.length === 0) {
           resultsSection.innerHTML = `
             <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded mb-4">
-              <p class="text-yellow-700">No routine data found for selected users.</p>
+              <p class="text-yellow-700">No mutual free time found for selected users.</p>
             </div>`;
           return;
         }
 
-        // Build HTML: For each day, a card listing slots
         let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">`;
         days.forEach(day => {
           const slots = freeSlots[day];
           html += `<div class="bg-white p-6 rounded-xl shadow hover:shadow-2xl transition transform hover:-translate-y-1">
             <h3 class="text-xl font-semibold text-gray-800 mb-3">${day}</h3>`;
           if (!slots || slots.length === 0) {
-            html += `<p class="text-gray-500">No common free slots.</p>`;
+            html += `<p class="text-gray-500">No mutual free slots.</p>`;
           } else {
             html += `<ul class="space-y-1">`;
             slots.forEach(slot => {
-              html += `<li class="text-gray-700">  
-                  <span class="font-medium">${formatTime12(slot.start)}</span> &ndash; <span class="font-medium">${formatTime12(slot.start)}</span>
+              html += `<li class="text-gray-700">
+                  <span class="font-medium">${formatTime12(slot.start)}</span> &ndash; <span class="font-medium">${formatTime12(slot.end)}</span>
                 </li>`;
             });
             html += `</ul>`;
@@ -191,7 +182,6 @@ $friends = $stmt->fetchAll();
           html += `</div>`;
         });
         html += `</div>`;
-
         resultsSection.innerHTML = html;
       }
     })();
