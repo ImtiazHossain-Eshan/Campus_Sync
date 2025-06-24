@@ -34,7 +34,7 @@ $user_id = $_SESSION['user_id'];
         <!-- Accepted Friends -->
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Accepted Friends</h3>
         <div id="friendList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
-          <!-- Dynamically filled -->
+          <!-- Dynamically filled by friends.js -->
         </div>
 
         <!-- Pending Requests -->

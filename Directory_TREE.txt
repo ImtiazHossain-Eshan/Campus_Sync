@@ -1,0 +1,64 @@
+Campus_Sync/
+├─ analytics/
+│  └─ weekly_summary.php
+├─ assets/
+│  ├─ css/
+│  │  └─ style.css
+│  ├─ img/
+│  │  └─ default-profile.png
+│  ├─ js/
+│  │  ├─ friends.js
+│  │  ├─ navbar.js
+│  │  ├─ script.js
+│  │  └─ submit_routine.js
+│  └─ uploads/
+│     ├─ 685586bb00d23_00000-1861032672.png
+│     ├─ 6855892c4d78b_anime.gif
+│     ├─ 68558a35164c1_anime.gif
+│     ├─ 68558a89dfb22_snowy-snowing.gif
+│     └─ 6859a72814ec1_cat-no.gif
+├─ auth/
+│  ├─ auth_check.php
+│  ├─ login.php
+│  ├─ logout.php
+│  └─ register.php
+├─ config/
+│  └─ db.php
+├─ includes/
+│  ├─ footer.php
+│  ├─ header.php
+│  └─ navbar.php
+├─ notifications/
+│  ├─ fetch_free_time.php
+│  ├─ fetch_notifications.php
+│  ├─ mark_all_read.php
+│  ├─ mark_read.php
+│  └─ view_notifications.php
+├─ routines/
+│  ├─ fetch_course_details.php
+│  └─ fetch_course_sections.php
+├─ scraper/
+│  ├─ bracu_scraper.js
+│  ├─ package-lock.json
+│  ├─ package.json
+│  └─ server.js
+├─ user/
+│  ├─ accept_friend_request.php
+│  ├─ dashboard.php
+│  ├─ edit_profile.php
+│  ├─ fetch_friends.php
+│  ├─ fetch_users.php
+│  ├─ friends.php
+│  ├─ group_view.php
+│  ├─ profile.php
+│  ├─ remove_friend.php
+│  ├─ send_friend_request.php
+│  ├─ submit_routine.php
+│  └─ view_friend.php
+├─ .htaccess
+├─ campussync.sql
+├─ Directory_TREE.txt
+├─ index.php
+├─ LICENSE
+├─ package.json
+└─ README.md

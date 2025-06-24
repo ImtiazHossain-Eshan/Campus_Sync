@@ -19,23 +19,62 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      users.forEach(user => {
-        const profilePic = user.profile_pic ? `../${user.profile_pic}` : '../assets/img/default-profile.png';
-        const card = `
-          <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow">
-            <div class="flex items-center gap-4">
-              <img src="${profilePic}" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 border-blue-500" />
-              <div>
-                <p class="text-gray-800 font-semibold">${user.name}</p>
-                <p class="text-sm text-gray-500">${user.email}</p>
-              </div>
-            </div>
-            <button onclick="sendRequest(${user.id})"
-              class="bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition">Add</button>
-          </div>
-        `;
-        resultsDiv.innerHTML += card;
-      });
+    // Sort: pending → accepted → none
+users.sort((a, b) => {
+  const order = { pending: 0, accepted: 1, none: 2 };
+  return order[a.relation_status] - order[b.relation_status];
+});
+
+users.forEach((user, index) => {
+  const profilePic = user.profile_pic ? `../${user.profile_pic}` : '../assets/img/default-profile.png';
+  const isFriend = user.relation_status === 'accepted';
+  const isPending = user.relation_status === 'pending';
+
+  let statusLabel = '';
+  let buttonHTML = '';
+
+  if (isFriend) {
+    statusLabel = '<span class="text-green-600 text-sm font-medium">✅ Already Friends</span>';
+  } else if (isPending) {
+    statusLabel = '<span class="text-yellow-600 text-sm font-medium">⏳ Request Pending</span>';
+  }
+
+  if (!isFriend && !isPending) {
+    buttonHTML = `
+      <button onclick="sendRequest(${user.id})"
+        class="bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition">
+        Add
+      </button>
+    `;
+  }
+
+  const card = document.createElement('div');
+  card.className = `
+    flex items-center justify-between p-4 bg-white rounded-xl shadow
+    transition-all duration-300 ease-out transform opacity-0 translate-y-2
+    ${isFriend || isPending ? 'opacity-60 pointer-events-none' : ''}
+  `;
+  card.innerHTML = `
+    <div class="flex items-center gap-4">
+      <img src="${profilePic}" alt="Profile"
+           class="w-12 h-12 rounded-full object-cover border-2 border-blue-500" />
+      <div>
+        <p class="text-gray-800 font-semibold">${user.name}</p>
+        <p class="text-sm text-gray-500">${user.email}</p>
+        ${statusLabel}
+      </div>
+    </div>
+    ${buttonHTML}
+  `;
+
+  resultsDiv.appendChild(card);
+
+  // Fade/slide in with slight delay for each card
+  setTimeout(() => {
+    card.classList.remove('opacity-0', 'translate-y-2');
+  }, index * 60); // stagger animation
+});
+
     } catch (err) {
       resultsDiv.innerHTML = '<p class="text-red-500">Error loading users.</p>';
     }
@@ -60,7 +99,7 @@ async function loadFriends() {
   friendList.innerHTML = '';
   pendingList.innerHTML = '';
 
-  // Accepted Friends - FIXED CARD LAYOUT
+  // Accepted Friends
   data.accepted.forEach(friend => {
     const profilePic = friend.profile_pic ? `../${friend.profile_pic}` : '../assets/img/default-profile.png';
 
@@ -79,10 +118,16 @@ async function loadFriends() {
           <p class="text-sm text-gray-500 truncate">${friend.email ?? '<span class="italic text-gray-400">No email</span>'}</p>
         </div>
       </div>
-      <button onclick="confirmRemove(${friend.id}, '${friend.name}')" 
-        class="mt-auto bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-4 py-1.5 rounded-full text-sm font-medium transition">
-        Remove
-      </button>
+      <div class="flex flex-wrap gap-3 mt-auto">
+        <a href="view_friend.php?friend_id=${friend.id}"
+          class="bg-indigo-600 text-white text-sm px-4 py-1.5 rounded-full hover:bg-indigo-700 transition">
+          View
+        </a>
+        <button onclick="confirmRemove(${friend.id}, '${friend.name}')"
+          class="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-4 py-1.5 rounded-full text-sm font-medium transition">
+          Remove
+        </button>
+      </div>
     `;
 
     friendList.appendChild(card);
