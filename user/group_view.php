@@ -1,12 +1,11 @@
 <?php 
-require '../auth/auth_check.php'; // Redirects to login if not logged in
+require '../auth/auth_check.php'; 
 require '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch accepted friends: either direction
 $stmt = $pdo->prepare("
-    SELECT DISTINCT u.id, u.name 
+    SELECT DISTINCT u.id, u.name, u.profile_pic
     FROM users u 
     JOIN friends f 
       ON (
@@ -17,7 +16,6 @@ $stmt = $pdo->prepare("
     WHERE f.status = 'accepted'
     ORDER BY u.name
 ");
-
 $stmt->execute([':uid' => $user_id]);
 $friends = $stmt->fetchAll();
 ?>
@@ -56,6 +54,83 @@ $friends = $stmt->fetchAll();
     .fade-in-up {
       animation: fadeInUp 0.4s ease forwards;
     }
+
+    /* Custom checkbox styling */
+    label.friend-checkbox {
+      cursor: pointer;
+      user-select: none;
+      background: white;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: background-color 0.3s ease;
+      border: 2px solid transparent;
+    }
+    label.friend-checkbox:hover,
+    label.friend-checkbox:focus-within {
+      background-color: #bfdbfe; /* blue-200 */
+      border-color: #3b82f6; /* blue-500 */
+    }
+    label.friend-checkbox input[type="checkbox"] {
+      /* Hide native checkbox */
+      appearance: none;
+      -webkit-appearance: none;
+      width: 28px;
+      height: 28px;
+      border: 2px solid #94a3b8; /* gray-400 */
+      border-radius: 0.5rem;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    label.friend-checkbox input[type="checkbox"]:checked {
+      background-color: #3b82f6; /* blue-500 */
+      border-color: #3b82f6;
+    }
+    label.friend-checkbox input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 9px;
+      width: 6px;
+      height: 12px;
+      border: solid white;
+      border-width: 0 2.5px 2.5px 0;
+      transform: rotate(45deg);
+    }
+
+    /* Profile picture */
+    label.friend-checkbox img.friend-pic {
+      width: 40px;
+      height: 40px;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 2px solid #3b82f6; /* blue-500 */
+      flex-shrink: 0;
+    }
+
+    /* Availability badge */
+    .availability-badge {
+      margin-left: auto;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      user-select: none;
+      white-space: nowrap;
+      transition: background-color 0.3s ease;
+      flex-shrink: 0;
+    }
+    .availability-badge.available {
+      background-color: #d1fae5; /* green-100 */
+      color: #065f46; /* green-800 */
+    }
+    .availability-badge.busy {
+      background-color: #fee2e2; /* red-100 */
+      color: #991b1b; /* red-800 */
+    }
   </style>
 </head>
 <body class="bg-gradient-to-tr from-blue-50 to-purple-100 min-h-screen flex flex-col text-gray-900 selection:bg-blue-300 selection:text-white">
@@ -76,11 +151,14 @@ $friends = $stmt->fetchAll();
           <fieldset>
             <legend class="text-xl font-semibold mb-6 text-gray-700">Select friends to match free time with:</legend>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-h-72 overflow-y-auto custom-scrollbar px-3 py-2 rounded-lg border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 transition">
-              <?php foreach ($friends as $f): ?>
-                <label class="flex items-center space-x-4 cursor-pointer select-none rounded-md p-3 hover:bg-blue-50 focus-within:bg-blue-100 transition">
-                  <input type="checkbox" name="friend_ids[]" value="<?= htmlspecialchars($f['id']) ?>" 
-                         class="h-6 w-6 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-0" />
+              <?php foreach ($friends as $f): 
+                $profilePic = !empty($f['profile_pic']) ? '../' . htmlspecialchars($f['profile_pic']) : '../assets/img/default-profile.png';
+              ?>
+                <label class="friend-checkbox" tabindex="0">
+                  <input type="checkbox" name="friend_ids[]" value="<?= htmlspecialchars($f['id']) ?>" />
+                  <img src="<?= $profilePic ?>" alt="Profile picture of <?= htmlspecialchars($f['name']) ?>" class="friend-pic" />
                   <span class="text-gray-900 font-medium truncate max-w-full"><?= htmlspecialchars($f['name']) ?></span>
+                  <span class="availability-badge busy" aria-live="polite" aria-atomic="true">Status</span>
                 </label>
               <?php endforeach; ?>
             </div>
@@ -107,6 +185,50 @@ $friends = $stmt->fetchAll();
       const form = document.getElementById('matchFreeForm');
       const resultsSection = document.getElementById('resultsSection');
       const matchBtn = document.getElementById('matchBtn');
+
+      // Map friend id => label element
+      const friendCheckboxes = Array.from(form.querySelectorAll('input[type="checkbox"][name="friend_ids[]"]'));
+      const friendLabels = friendCheckboxes.map(cb => cb.closest('label.friend-checkbox'));
+
+      // Helper: format time 24h to 12h AM/PM
+      function formatTime12(ts) {
+        if (!ts) return '';
+        const [hourStr, minStr] = ts.split(':');
+        let hour = parseInt(hourStr, 10);
+        const minute = minStr.padStart(2, '0');
+        const suffix = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12;
+        if (hour === 0) hour = 12;
+        return `${hour}:${minute} ${suffix}`;
+      }
+
+      // Set availability badge text & color per friend label
+      // If friend has any free slot, show "Available" (green), else "Busy" (red)
+      // For initial state, show "Status" and red busy color
+      function updateAvailabilityBadges(freeSlotsByFriend = {}) {
+        friendCheckboxes.forEach((cb, i) => {
+          const label = friendLabels[i];
+          const badge = label.querySelector('.availability-badge');
+
+          if (!badge) return;
+
+          const friendId = cb.value;
+          const slots = freeSlotsByFriend[friendId] || [];
+
+          if (slots.length > 0) {
+            badge.textContent = 'Available';
+            badge.classList.remove('busy');
+            badge.classList.add('available');
+          } else {
+            badge.textContent = 'Busy';
+            badge.classList.remove('available');
+            badge.classList.add('busy');
+          }
+        });
+      }
+
+      // Initialize badges to busy on page load
+      updateAvailabilityBadges({});
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -169,7 +291,23 @@ $friends = $stmt->fetchAll();
             return;
           }
 
+          // data.free_slots is object keyed by day; to get friend availability, 
+          // let's assume server returns free slots per friend_id as well:
+          // For demo fallback, create a fake freeSlotsByFriend with friendIds all available.
+          // You can adjust this logic to your backend response.
+
+          // If your backend returns free slots per friend (adjust this accordingly):
+          // Example: data.free_slots_by_friend = { friendId1: [...], friendId2: [...] }
+          // If not, fallback to empty.
+
+          const freeSlotsByFriend = data.free_slots_by_friend || {}; 
+
+          // Update availability badges on friend list
+          updateAvailabilityBadges(freeSlotsByFriend);
+
+          // Render main mutual free slots results as before
           renderResults(data.free_slots || {});
+
         } catch (err) {
           resultsSection.innerHTML = `
             <div class="bg-red-50 border-l-4 border-red-400 p-5 rounded-lg mb-6 shadow-sm text-red-800 font-semibold text-center">
@@ -179,17 +317,6 @@ $friends = $stmt->fetchAll();
           matchBtn.disabled = false;
         }
       });
-
-      function formatTime12(ts) {
-        if (!ts) return '';
-        const [hourStr, minStr] = ts.split(':');
-        let hour = parseInt(hourStr, 10);
-        const minute = minStr.padStart(2, '0');
-        const suffix = hour >= 12 ? 'PM' : 'AM';
-        hour = hour % 12;
-        if (hour === 0) hour = 12;
-        return `${hour}:${minute} ${suffix}`;
-      }
 
       function renderResults(freeSlots) {
         const days = Object.keys(freeSlots);
@@ -227,6 +354,7 @@ $friends = $stmt->fetchAll();
         html += `</div>`;
         resultsSection.innerHTML = html;
       }
+
     })();
   </script>
 </body>
