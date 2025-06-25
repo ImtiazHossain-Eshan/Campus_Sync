@@ -156,6 +156,31 @@ async function loadFriends() {
 
     pendingList.appendChild(card);
   });
+
+  // Sent Requests
+const sentList = document.getElementById('sentRequests');
+sentList.innerHTML = '';
+
+data.sent.forEach(req => {
+  const profilePic = req.profile_pic ? `../${req.profile_pic}` : '../assets/img/default-profile.png';
+
+  const card = document.createElement('div');
+  card.className = 'bg-white p-4 rounded-xl border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:shadow-md transition-shadow duration-300';
+
+  card.innerHTML = `
+    <div class="flex items-center gap-4">
+      <img src="${profilePic}" class="w-14 h-14 rounded-full object-cover border-2 border-gray-300" alt="Sent">
+      <div>
+        <p class="font-semibold text-gray-800">${req.name}</p>
+        <p class="text-sm text-gray-500">${req.email ?? '<span class="italic text-gray-400">No email</span>'}</p>
+      </div>
+    </div>
+    <div class="text-sm text-gray-500 italic">Request Sent</div>
+  `;
+
+  sentList.appendChild(card);
+});
+
 }
 
 

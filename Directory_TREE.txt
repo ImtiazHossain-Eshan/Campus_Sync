@@ -9,14 +9,14 @@ Campus_Sync/
 │  ├─ js/
 │  │  ├─ friends.js
 │  │  ├─ navbar.js
-│  │  ├─ script.js
 │  │  └─ submit_routine.js
 │  └─ uploads/
 │     ├─ 685586bb00d23_00000-1861032672.png
 │     ├─ 6855892c4d78b_anime.gif
 │     ├─ 68558a35164c1_anime.gif
 │     ├─ 68558a89dfb22_snowy-snowing.gif
-│     └─ 6859a72814ec1_cat-no.gif
+│     ├─ 6859a72814ec1_cat-no.gif
+│     └─ 685acd22e0291_confused-meme.gif
 ├─ auth/
 │  ├─ auth_check.php
 │  ├─ login.php

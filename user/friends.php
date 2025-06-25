@@ -25,23 +25,38 @@ $user_id = $_SESSION['user_id'];
 
       <div class="p-6 bg-gray-50">
         <!-- Search -->
-        <div class="mb-6">
+        <div class="mb-10">
           <input type="text" id="searchUser" placeholder="Search by name or email"
             class="w-full px-4 py-2 rounded-full border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" />
           <div id="searchResults" class="mt-4 space-y-2"></div>
         </div>
 
         <!-- Accepted Friends -->
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Accepted Friends</h3>
-        <div id="friendList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
-          <!-- Dynamically filled by friends.js -->
+        <div class="mb-12">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">Accepted Friends</h3>
+          <div id="friendList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Dynamically filled -->
+          </div>
         </div>
 
         <!-- Pending Requests -->
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Friend Requests</h3>
-        <div id="pendingRequests" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          <!-- Dynamically filled -->
+        <div class="mb-12">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">Incoming Friend Requests</h3>
+          <div id="pendingRequests" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <!-- Dynamically filled -->
+          </div>
         </div>
+
+        <!-- Sent Requests -->
+        <div class="mb-12">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">Sent Friend Requests 
+            <span class="ml-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">Pending</span>
+          </h3>
+          <div id="sentRequests" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <!-- Dynamically filled -->
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
