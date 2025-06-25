@@ -157,7 +157,7 @@ async function loadFriends() {
     pendingList.appendChild(card);
   });
 
-  // Sent Requests
+// Sent Requests
 const sentList = document.getElementById('sentRequests');
 sentList.innerHTML = '';
 
@@ -175,11 +175,15 @@ data.sent.forEach(req => {
         <p class="text-sm text-gray-500">${req.email ?? '<span class="italic text-gray-400">No email</span>'}</p>
       </div>
     </div>
-    <div class="text-sm text-gray-500 italic">Request Sent</div>
+    <button onclick="cancelRequest(${req.id})"
+      class="bg-red-600 text-white px-4 py-1.5 rounded-full hover:bg-red-700 transition text-sm font-medium">
+      Cancel
+    </button>
   `;
 
   sentList.appendChild(card);
 });
+
 
 }
 
@@ -207,4 +211,16 @@ function confirmRemove(friendId, name) {
   if (confirm(`Are you sure you want to remove ${name} from your friend list?`)) {
     removeFriend(friendId);
   }
+}
+
+async function cancelRequest(friendId) {
+  if (!confirm("Cancel this friend request?")) return;
+
+  await fetch('cancel_friend_request.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ friend_id: friendId })
+  });
+
+  loadFriends();
 }
