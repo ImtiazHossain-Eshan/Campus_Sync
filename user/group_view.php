@@ -5,7 +5,7 @@ require '../config/db.php';
 $user_id = $_SESSION['user_id'];
 
 $stmt = $pdo->prepare("
-    SELECT DISTINCT u.id, u.name, u.profile_pic
+    SELECT DISTINCT u.id, u.name, u.profile_pic, u.phone
     FROM users u 
     JOIN friends f 
       ON (
@@ -154,11 +154,34 @@ $friends = $stmt->fetchAll();
               <?php foreach ($friends as $f): 
                 $profilePic = !empty($f['profile_pic']) ? '../' . htmlspecialchars($f['profile_pic']) : '../assets/img/default-profile.png';
               ?>
-                <label class="friend-checkbox" tabindex="0">
+<label class="friend-checkbox flex flex-col items-center justify-center bg-white rounded-xl shadow p-4 m-2 min-w-[140px] sm:min-w-[160px] md:min-w-[180px]">
+
                   <input type="checkbox" name="friend_ids[]" value="<?= htmlspecialchars($f['id']) ?>" />
                   <img src="<?= $profilePic ?>" alt="Profile picture of <?= htmlspecialchars($f['name']) ?>" class="friend-pic" />
                   <span class="text-gray-900 font-medium truncate max-w-full"><?= htmlspecialchars($f['name']) ?></span>
                   <span class="availability-badge busy" aria-live="polite" aria-atomic="true">Status</span>
+
+<!-- CALL BUTTON -->
+<?php if (!empty($f['phone'])): ?>
+  <a href="tel:<?= htmlspecialchars($f['phone']) ?>"
+     class="ml-2 text-green-600 hover:text-green-800 transition inline-flex items-center justify-center"
+     title="Call <?= htmlspecialchars($f['name']) ?>">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M3 5a2 2 0 012-2h2.28a2 2 0 011.9 1.37l1.14 3.43a2 2 0 01-.45 2.04l-1.27 1.27a11.05 11.05 0 005.09 5.09l1.27-1.27a2 2 0 012.04-.45l3.43 1.14A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C9.163 23 1 14.837 1 4V3a2 2 0 012-2h1z" />
+    </svg>
+  </a>
+<?php else: ?>
+  <button disabled 
+     class="ml-2 text-gray-400 cursor-not-allowed inline-flex items-center justify-center" 
+     title="No phone number">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M3 5a2 2 0 012-2h2.28a2 2 0 011.9 1.37l1.14 3.43a2 2 0 01-.45 2.04l-1.27 1.27a11.05 11.05 0 005.09 5.09l1.27-1.27a2 2 0 012.04-.45l3.43 1.14A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C9.163 23 1 14.837 1 4V3a2 2 0 012-2h1z" />
+    </svg>
+  </button>
+<?php endif; ?>
+
                 </label>
               <?php endforeach; ?>
             </div>

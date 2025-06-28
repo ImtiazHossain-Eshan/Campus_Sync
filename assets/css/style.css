@@ -35,3 +35,7 @@ th, td {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 }
+
+label.friend-checkbox a, label.friend-checkbox button {
+  flex-shrink: 0;
+}
