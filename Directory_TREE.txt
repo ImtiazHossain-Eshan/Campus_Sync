@@ -16,7 +16,10 @@ Campus_Sync/
 │     ├─ 68558a35164c1_anime.gif
 │     ├─ 68558a89dfb22_snowy-snowing.gif
 │     ├─ 6859a72814ec1_cat-no.gif
-│     └─ 685acd22e0291_confused-meme.gif
+│     ├─ 685acd22e0291_confused-meme.gif
+│     ├─ 685fed134cd29_snowy-snowing.gif
+│     ├─ 685fed3217f26_trouble-trouble-the-cat.gif
+│     └─ 685fedb9b009d_anime.gif
 ├─ auth/
 │  ├─ auth_check.php
 │  ├─ login.php
@@ -44,6 +47,7 @@ Campus_Sync/
 │  └─ server.js
 ├─ user/
 │  ├─ accept_friend_request.php
+│  ├─ cancel_friend_request.php
 │  ├─ dashboard.php
 │  ├─ edit_profile.php
 │  ├─ fetch_friends.php
