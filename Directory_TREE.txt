@@ -19,7 +19,8 @@ Campus_Sync/
 │     ├─ 685acd22e0291_confused-meme.gif
 │     ├─ 685fed134cd29_snowy-snowing.gif
 │     ├─ 685fed3217f26_trouble-trouble-the-cat.gif
-│     └─ 685fedb9b009d_anime.gif
+│     ├─ 685fedb9b009d_anime.gif
+│     └─ 685ffd714f341_confused-meme.gif
 ├─ auth/
 │  ├─ auth_check.php
 │  ├─ login.php
