@@ -11,14 +11,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_routine'])) {
     $section_code = $_POST['section_code'] ?? '';
     $course_name = $_POST['course_name'] ?? '';
     $faculty = $_POST['faculty'] ?? '';
-
-    // Expect slots as array: $_POST['slots'][0]['day'], etc.
     $slots = $_POST['slots'] ?? [];
 
     if (!$section_code || !$course_name || !$faculty || !is_array($slots) || count($slots) === 0) {
         $errorMessage = "Please select a course section code to auto-fill slots.";
     } else {
-        // Insert one row per slot
         $insertStmt = $pdo->prepare("
             INSERT INTO routines 
             (user_id, day, start_time, end_time, course_code, course_name, faculty, section, room)
@@ -43,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_routine'])) {
                     $section_code,
                     $course_name,
                     $faculty,
-                    $section_code, // storing section same as course_code
+                    $section_code,
                     $room
                 ]);
             }
@@ -56,24 +53,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['submit_routine'])) {
     }
 }
 
-// Handle Delete: delete all slots for a section_code
+// Handle Delete
 if (isset($_GET['delete_section'])) {
     $delSection = $_GET['delete_section'];
-    // Delete all entries for this user and that section
     $stmt = $pdo->prepare("DELETE FROM routines WHERE user_id = ? AND section = ?");
     $stmt->execute([$user_id, $delSection]);
-    // Redirect to avoid repeated deletion on refresh
     header("Location: submit_routine.php");
     exit();
 }
 
-// Fetch routines for display: we still need all for Weekly Overview
-// But for the “Submitted Routines” table, we'll group by section_code.
 $stmtAll = $pdo->prepare("SELECT * FROM routines WHERE user_id = ?");
 $stmtAll->execute([$user_id]);
 $routinesAll = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
 
-// Prepare weekly overview grid (unchanged logic, but include Friday/Saturday if used)
 $timeSlots = [
     "08:00:00" => "08:00 – 09:20",
     "09:30:00" => "09:30 – 10:50",
@@ -83,7 +75,6 @@ $timeSlots = [
     "15:30:00" => "03:30 – 04:50",
     "17:00:00" => "05:00 – 06:20",
 ];
-// Include Friday and Saturday if desired
 $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 $grid = [];
@@ -93,12 +84,12 @@ foreach ($routinesAll as $r) {
     $span = 1;
     $dtStart = new DateTime($start);
     $dtEnd = new DateTime($r['end_time']);
-    $diffH = ($dtEnd->getTimestamp() - $dtStart->getTimestamp())/3600.0;
+    $diffH = ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600.0;
     if ($diffH >= 1.5) {
         $span = 2;
     }
     // Build display string for grid cell, if you like: here we show section-faculty-room as well
-    $section = $r['section'];       // e.g. "ECO101-25"
+    $section = strtoupper($r['section']);;       // e.g. "ECO101-25"
     $facultyInitial = $r['faculty']; // e.g. "TBA"
     $room = $r['room'];             // e.g. "08B" or "10C"
     $displayParts = [$section];
@@ -125,28 +116,26 @@ foreach ($routinesAll as $r) {
             'course_name' => $r['course_name'],
             'faculty' => $r['faculty'],
             'rooms' => [],
-            'slots' => [], // optional if you want to show times
+            'slots' => [],
         ];
     }
     // Collect distinct rooms
     if ($r['room'] !== '' && !in_array($r['room'], $grouped[$sec]['rooms'])) {
         $grouped[$sec]['rooms'][] = $r['room'];
     }
-    // Optionally collect slots (day/time) if needed later
     $grouped[$sec]['slots'][] = [
         'day' => $r['day'],
         'start_time' => $r['start_time'],
         'end_time' => $r['end_time'],
     ];
 }
-
 ?>
 <?php include '../includes/header.php'; ?>
 <?php include '../includes/navbar.php'; ?>
 
 <main class="max-w-7xl mx-auto mt-10 px-6">
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-    <!-- Submit Routine Form (unchanged) -->
+    <!-- Submit Routine Form -->
     <div class="bg-white p-8 rounded-xl shadow-lg">
       <h2 class="text-2xl font-bold text-blue-700 mb-6">Submit Your Class Routine</h2>
       <?php if ($successMessage): ?>
@@ -168,9 +157,7 @@ foreach ($routinesAll as $r) {
           <input list="courseSections" id="courseInput" name="section_code" required
                  placeholder="Type or select section code"
                  class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-          <datalist id="courseSections">
-            <!-- Populated by JS -->
-          </datalist>
+          <datalist id="courseSections"></datalist>
         </div>
         <!-- Auto-filled Course Name & Faculty -->
         <div class="grid grid-cols-2 gap-4">
@@ -220,7 +207,7 @@ foreach ($routinesAll as $r) {
               <?php foreach ($grouped as $section_code => $info): ?>
                 <?php
                   // Build display: section_code-facultyInitial-room1-room2-...
-                  $parts = [$section_code];
+                  $parts = [strtoupper($section_code)];
                   if (!empty($info['faculty'])) {
                       $parts[] = $info['faculty'];
                   }
@@ -234,13 +221,11 @@ foreach ($routinesAll as $r) {
                   }
                   $displayStr = implode('-', $parts);
 
-                  // Build time slots summary: e.g. "Sun 15:30–16:50; Tue 15:30–16:50"
                   $timeParts = [];
                   foreach ($info['slots'] as $slot) {
                       if (!empty($slot['day']) && !empty($slot['start_time']) && !empty($slot['end_time'])) {
                           $st = substr($slot['start_time'], 0, 5);
                           $et = substr($slot['end_time'], 0, 5);
-                          // Abbreviate day if desired, e.g. "Sun" instead of "Sunday"
                           $dayShort = substr($slot['day'], 0, 3);
                           $timeParts[] = $dayShort . ' ' . $st . '–' . $et;
                       }
@@ -264,11 +249,18 @@ foreach ($routinesAll as $r) {
     </div>
   </div>
 
-  <!-- Weekly Routine Overview: unchanged grouping by day/time -->
+  <!-- Weekly Routine Overview with Download button -->
   <div class="mt-20">
-    <h3 class="text-2xl font-bold text-gray-800 mb-6">📆 Weekly Routine Overview</h3>
-    <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white">
-      <table class="min-w-full table-auto text-sm text-gray-800">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-2xl font-bold text-gray-800">📆 Weekly Routine Overview</h3>
+      <button id="downloadRoutineBtn"
+              class="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 transition font-semibold shadow-md">
+        ⬇️ Download PNG
+      </button>
+    </div>
+
+    <div id="weeklyRoutineTableWrapper" class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white">
+      <table id="weeklyRoutineTable" class="min-w-full table-auto text-sm text-gray-800">
         <thead class="bg-gradient-to-r from-blue-100 to-blue-200">
           <tr>
             <th class="px-4 py-3 text-left font-semibold border border-gray-200">⏰ Time</th>
@@ -323,7 +315,32 @@ foreach ($routinesAll as $r) {
   © <?= date("Y") ?> Campus Sync. All rights reserved. 
 </footer>
 
-<!-- Include JS: -->
+<!-- JS Includes -->
 <script src="../assets/js/submit_routine.js"></script>
+
+<!-- Load html2canvas from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<script>
+document.getElementById('downloadRoutineBtn').addEventListener('click', function() {
+  const tableWrapper = document.getElementById('weeklyRoutineTableWrapper');
+
+  // Use html2canvas to capture the table wrapper div
+  html2canvas(tableWrapper, {
+    scale: 2,   // increase scale for better resolution
+    scrollY: -window.scrollY, // fix scroll offset
+    useCORS: true
+  }).then(canvas => {
+    // Create a temporary link to download the image
+    const link = document.createElement('a');
+    link.download = 'weekly_routine.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(err => {
+    alert('Failed to capture routine image: ' + err);
+  });
+});
+</script>
+
 </body>
 </html>
