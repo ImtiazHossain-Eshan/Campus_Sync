@@ -5,6 +5,7 @@ include '../config/db.php';
 $error = "";
 $success = "";
 
+// Fetch user
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
@@ -17,13 +18,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $gender = htmlspecialchars(trim($_POST['gender']));
     $department = htmlspecialchars(trim($_POST['department']));
     $social = htmlspecialchars(trim($_POST['social']));
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
     $profile_pic = $user['profile_pic'];
 
     if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
         $uploadDir = '../assets/uploads/';
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
+        if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
+
         $filename = uniqid() . '_' . basename($_FILES['profile_pic']['name']);
         $targetFile = $uploadDir . $filename;
 
@@ -32,21 +34,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 
-    $stmt = $pdo->prepare("UPDATE users SET name = ?, phone = ?, semester = ?, university = ?, gender = ?, department = ?, social = ?, profile_pic = ? WHERE id = ?");
-    try {
+    if (!empty($password)) {
+        if ($password !== $confirm_password) {
+            $error = "Passwords do not match.";
+        } elseif (strlen($password) < 6) {
+            $error = "Password must be at least 6 characters.";
+        } else {
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE users SET name = ?, phone = ?, semester = ?, university = ?, gender = ?, department = ?, social = ?, profile_pic = ?, password = ? WHERE id = ?");
+            $stmt->execute([$name, $phone, $semester, $university, $gender, $department, $social, $profile_pic, $hashedPassword, $_SESSION['user_id']]);
+            $success = "Profile and password updated successfully.";
+        }
+    }
+
+    if (empty($password) && empty($error)) {
+        $stmt = $pdo->prepare("UPDATE users SET name = ?, phone = ?, semester = ?, university = ?, gender = ?, department = ?, social = ?, profile_pic = ? WHERE id = ?");
         $stmt->execute([$name, $phone, $semester, $university, $gender, $department, $social, $profile_pic, $_SESSION['user_id']]);
         $success = "Profile updated successfully.";
+    }
 
-    // Re-fetch updated user info
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $user = $stmt->fetch();
-
-    } catch (PDOException $e) {
-        $error = "Error updating profile.";
+    if ($success) {
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
     }
 }
-
 ?>
 
 <?php include '../includes/header.php'; ?>
@@ -57,7 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <h2 class="text-3xl font-extrabold text-blue-700 mb-6 text-center">✏️ Edit Your Profile</h2>
 
     <?php if (!empty($success)): ?>
-      <div class="bg-green-100 border border-green-300 text-green-700 px-4 py-3 rounded mb-6">
+      <div id="successAlert" class="bg-green-100 border border-green-300 text-green-700 px-4 py-3 rounded mb-6">
         <?= htmlspecialchars($success) ?>
       </div>
     <?php elseif (!empty($error)): ?>
@@ -114,11 +126,55 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php endif; ?>
       </div>
 
+      <!-- Password -->
+      <div class="col-span-2">
+        <label class="block text-sm font-semibold text-gray-700">New Password</label>
+        <div class="relative">
+          <input type="password" name="password" id="password" class="w-full px-4 py-2 border rounded-lg pr-10" oninput="checkStrength(this.value)">
+          <button type="button" onclick="toggleVisibility('password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500">👁️</button>
+        </div>
+        <div id="strengthText" class="text-sm mt-1 text-gray-500"></div>
+      </div>
+
+      <div class="col-span-2">
+        <label class="block text-sm font-semibold text-gray-700">Confirm Password</label>
+        <div class="relative">
+          <input type="password" name="confirm_password" id="confirm_password" class="w-full px-4 py-2 border rounded-lg pr-10">
+          <button type="button" onclick="toggleVisibility('confirm_password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500">👁️</button>
+        </div>
+      </div>
+
       <div class="col-span-2">
         <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold">Update Profile</button>
       </div>
     </form>
   </div>
 </main>
+
+<script>
+function toggleVisibility(fieldId) {
+  const input = document.getElementById(fieldId);
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+function checkStrength(password) {
+  const strengthText = document.getElementById("strengthText");
+  let strength = "Weak", color = "red";
+
+  if (password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password)) {
+    strength = "Strong"; color = "green";
+  } else if (password.length >= 6) {
+    strength = "Moderate"; color = "orange";
+  }
+
+  strengthText.textContent = `Strength: ${strength}`;
+  strengthText.style.color = color;
+}
+
+setTimeout(() => {
+  const alert = document.getElementById("successAlert");
+  if (alert) alert.style.display = "none";
+}, 3000);
+</script>
 
 <?php include '../includes/footer.php'; ?>
