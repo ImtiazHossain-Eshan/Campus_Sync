@@ -11,17 +11,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!$email) {
         $error = "Please enter a valid email.";
     } else {
+        // First check in admin table
+        $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ?");
+        $stmt->execute([$email]);
+        $admin = $stmt->fetch();
+
+        if ($admin && $admin['password'] === $password) {
+            $_SESSION['admin_id'] = $admin['id'];
+            $_SESSION['admin_name'] = $admin['name'];
+            header("Location: ../admin/admin_panel.php");
+            exit();
+        }
+
+        // Then check in users table
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_name'] = $user['name'];
             header("Location: ../user/dashboard.php");
             exit();
-        } else {
-            $error = "Invalid credentials. Please try again.";
         }
+
+        $error = "Invalid credentials. Please try again.";
     }
 }
 ?>

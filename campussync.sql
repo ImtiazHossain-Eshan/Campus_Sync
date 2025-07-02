@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS users (
     profile_pic VARCHAR(255)
 );
 
+ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+
 -- 2. Course sections table (cache for scraped data)
 CREATE TABLE IF NOT EXISTS course_sections (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -44,6 +47,8 @@ CREATE TABLE IF NOT EXISTS routines (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+ALTER TABLE routines ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ;
+
 -- 4. Notifications
 CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,8 +57,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     read_at DATETIME DEFAULT NULL,
-    FOREIGN KEY (sender_id) REFERENCES users(id),
-    FOREIGN KEY (receiver_id) REFERENCES users(id)
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 5. Groups and group_members
@@ -87,4 +92,12 @@ CREATE TABLE IF NOT EXISTS friends (
     UNIQUE KEY unique_friendship_pair (friendship_key),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS admins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

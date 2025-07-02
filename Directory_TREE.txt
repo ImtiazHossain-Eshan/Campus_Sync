@@ -1,4 +1,15 @@
 Campus_Sync/
+├─ admin/
+│  ├─ add_admin.php
+│  ├─ add_user.php
+│  ├─ admin_panel.php
+│  ├─ delete_admin.php
+│  ├─ delete_user.php
+│  ├─ logout.php
+│  ├─ manage_admins.php
+│  ├─ manage_users.php
+│  ├─ view_admin.php
+│  └─ view_user.php
 ├─ analytics/
 │  └─ weekly_summary.php
 ├─ assets/
@@ -11,18 +22,11 @@ Campus_Sync/
 │  │  ├─ navbar.js
 │  │  └─ submit_routine.js
 │  └─ uploads/
-│     ├─ 685586bb00d23_00000-1861032672.png
-│     ├─ 6855892c4d78b_anime.gif
-│     ├─ 68558a35164c1_anime.gif
-│     ├─ 68558a89dfb22_snowy-snowing.gif
-│     ├─ 6859a72814ec1_cat-no.gif
-│     ├─ 685acd22e0291_confused-meme.gif
-│     ├─ 685fed134cd29_snowy-snowing.gif
-│     ├─ 685fed3217f26_trouble-trouble-the-cat.gif
-│     ├─ 685fedb9b009d_anime.gif
-│     └─ 685ffd714f341_confused-meme.gif
+│     ├─ 68656cf5ea95c_tenor.gif
+│     └─ 68656d2293c7c_tenor.gif
 ├─ auth/
 │  ├─ auth_check.php
+│  ├─ check_email.php
 │  ├─ login.php
 │  ├─ logout.php
 │  └─ register.php
